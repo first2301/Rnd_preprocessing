@@ -66,7 +66,7 @@ def log_system_resources():
 start_time = time.time() # 프로그램 시작 시간 기록
 
 # logging 모드 설정: logging.INFO / logging.DEBUG
-log_file = './log/prepro.log'
+log_file = './log/prepro.log' # 데이터 처리 로그 저장 경로
 logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 logging.info('데이터 처리 시작')
 log_system_resources() # 시스템 리소스 확인
