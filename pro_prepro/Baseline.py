@@ -84,15 +84,15 @@ img_paths = [img_path for sublist in img_total_list for img_path in sublist]
 # img_type_data = [img_paths[n].split('.')[-1] for n in range(len(img_paths))] 
 
 # 이미지 데이터에서 메타 데이터 추출
-logging.info('메타 데이터 추출 시작..')
+logging.info('메타 데이터 추출 시작..') # 데이터 처리 및 데이터프레임 생성
 df = pd.DataFrame({'file_id': [img_paths[n].split('.')[-2].split('/')[-1] for n in range(len(img_paths))], # 이미지 데이터 경로에서 파일명으로 되어있는 id 분리
                     'full_path': img_paths, # 전체 이미지 데이터 경로 
                     'folder': [img_paths[n].split('.')[-2].split('/')[-2] for n in range(len(img_paths))], # 폴더명 추출
                     'file_name': [path.split('/')[-1] for path in img_paths],
                     'file_size': [os.path.getsize(path) for path in tqdm(img_paths)], # 각각의 파일 크기 
                     }) 
-label_data = glob.glob('./data/label_data/*.json')
-
+label_data = glob.glob('./data/label_data/*.json') # 메타 데이터 경로
+# 메타 데이터 추출 및 데이터프레임 생성
 label_df = pd.DataFrame({"file_id": [label.split('.')[-2].split('/')[-1] for label in label_data],
                         "label_paths": label_data,})
 logging.info('메타 데이터 추출 완료')
