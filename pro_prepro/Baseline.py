@@ -92,7 +92,6 @@ df = pd.DataFrame({'file_id': [img_paths[n].split('.')[-2].split('/')[-1] for n 
                     'file_size': [os.path.getsize(path) for path in tqdm(img_paths)], # 각각의 파일 크기 
                     }) 
 label_data = glob.glob('./data/label_data/*.json') # 메타 데이터 경로
-# 메타 데이터 추출 및 데이터프레임 생성
 label_df = pd.DataFrame({"file_id": [label.split('.')[-2].split('/')[-1] for label in label_data],
                         "label_paths": label_data,})
 logging.info('메타 데이터 추출 완료')
@@ -103,12 +102,14 @@ json_meta_data = normalize_json(label_df['label_paths']) # json 데이터를 pan
 # json에서 pandas DataFrame로 변환한 여러 데이터를 하나의 DataFrame로 concat해서 종합
 concat_df = pd.concat(json_meta_data, ignore_index=True) 
 
+# 데이터 정보 
 '''
 Dataset.quality1: 품질정보1(밀도) / 2.5 이상
 Dataset.quality2: 품질정보2(흡수율) / 3% 이하 (흡수율이 높으면 콘크리트 물비 증가 → 강도저하 및 균열 문제 발생)
 Dataset.quality3: 품질정보3(안전성) / 5% 이하 (외부 화학적, 기상적 환경영향성 → 내구성 문제 발생)
 Dataset.quality4: 품질정보4(잔입자 통과량) / 잔입자량이 많으면 콘크리트 물비 증가 → 강도저하 및 균열 문제 발생)
 '''
+# 데이터 선별
 new_df = concat_df[['id', 'image.size.width', 'image.size.height', 'dataset.quality1', 'dataset.quality2', 'dataset.quality3', 'dataset.quality4', 'dataset.result']]
 new_df.columns = ['file_id', 'width', 'height', '밀도', '흡수율', '안전성', '잔입자_통과량', 'target_data']
 merge_df = pd.merge(df, new_df, on='file_id') # 이미지에서 추출한 메타 데이터와 json에서 DataFrame으로 변환한 데이터를 inner join
