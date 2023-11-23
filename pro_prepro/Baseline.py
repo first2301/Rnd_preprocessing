@@ -42,7 +42,7 @@ def log_system_resources():
     불필요한 자원이 사용되고 있는지 확인하는 함수
     '''
     # 시스템 리소스 정보를 얻기 위해 psutil 사용
-    memory_info = psutil.virtual_memory()
+    memory_info = psutil.virtual_memory() # 메모리 정보
     cpu_percent = psutil.cpu_percent(interval=1)  # CPU 사용량 (1초 간격)
     disk_usage = psutil.disk_usage('/')  # 루트 디스크 사용량 정보
     
@@ -60,7 +60,7 @@ def log_system_resources():
     사용된 디스크 용량: {format_bytes(disk_usage.used)} 
     디스크 사용 퍼센트: {disk_usage.percent}%
     --------------------------------------
-    """
+    """ # 각주가 아니라 log 출력되는 comment
     logging.info(system_info)
 
 start_time = time.time() # 프로그램 시작 시간 기록
