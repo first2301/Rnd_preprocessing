@@ -152,7 +152,7 @@ file_info = f"""
 logging.info(file_info) # 데이터 처리 정보 확인
 
 # 데이터베이스 생성 및 저장
-db_path = './database/database.db'
+db_path = './database/database.db' # sqlite3 데이터베이스 경로
 conn = sqlite3.connect(db_path)
 logging.info('데이터베이스 생성')
 
@@ -160,7 +160,7 @@ if Path(db_path).exists():
     logging.info("데이터베이스 경로: %s", db_path)
 
 # 데이터 베이스에 데이터 저장
-updated_df.to_sql('TB_meta_info', conn, if_exists='replace', index=False)
+updated_df.to_sql('TB_meta_info', conn, if_exists='replace', index=False) # pandas 데이터프레임을 db에 저장
 logging.info('데이터베이스에 데이터 저장 완료')
 
 conn.close() 
