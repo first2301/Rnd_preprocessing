@@ -11,7 +11,7 @@ import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 
-def format_bytes(size):
+def format_bytes(size): # 파일 용량 계산
     '''
     byte를 KB, MB, GB, TB 등으로 변경하는 함수
     '''
@@ -25,7 +25,7 @@ def format_bytes(size):
     # return f"{size:.5f} {volum_labels[n]}"
     return f"{size} {volum_labels[n]}"
 
-def normalize_json(json_meta_data):
+def normalize_json(json_meta_data): # json 형태의 데이터를 DataFrame으로 변환
     '''
     json데이터를 pandas DataFrame로 변경하는 함수
     '''
