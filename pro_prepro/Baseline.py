@@ -71,14 +71,14 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s -
 logging.info('데이터 처리 시작')
 log_system_resources() # 시스템 리소스 확인
 
-data_dir = './data/' # 데이터 저장 경로 
-data_path = subprocess.run(['tree', '-d', data_dir], text=True, capture_output=True, check=True)
+data_dir = './data/' 
+data_path = subprocess.run(['tree', '-d', data_dir], text=True, capture_output=True, check=True) # 전체 데이터 디렉토리 정보 확인
 if data_path.returncode == 0:
     logging.info("데이터 디렉토리 확인:\n%s", data_path.stdout) # 로그 파일에 디렉토리 정보 출력
 
 logging.info('데이터 로딩')
 # pd.set_option('display.max_columns', None) # 데이터프레임에서 전체 컬럼 보이기
-img_dir_list = glob.glob('./data/image/TS*')
+img_dir_list = glob.glob('./data/image/TS*') # 처리할 데이터 저장 경로
 img_total_list = [glob.glob(folder+'/*') for folder in img_dir_list]
 img_paths = [img_path for sublist in img_total_list for img_path in sublist]
 # img_type_data = [img_paths[n].split('.')[-1] for n in range(len(img_paths))] 
