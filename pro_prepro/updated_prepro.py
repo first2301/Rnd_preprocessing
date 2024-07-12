@@ -10,15 +10,10 @@ import subprocess
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
-
 from lib.prepro import Preprocessing
 
-
-prepro = Preprocessing()
-
-
-
 start_time = time.time() # 프로그램 시작 시간 기록
+prepro = Preprocessing()
 
 # logging 모드 설정: logging.INFO / logging.DEBUG
 log_file = './log/prepro.log' # 데이터 처리 로그 저장 경로

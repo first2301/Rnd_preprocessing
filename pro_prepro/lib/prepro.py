@@ -2,6 +2,7 @@ import json
 import time
 import psutil
 import logging
+import zipfile
 import pandas as pd
 from tqdm import tqdm
 
@@ -61,3 +62,10 @@ class Preprocessing:
         --------------------------------------
         """ # 각주가 아니라 log 출력되는 comment
         logging.info(system_info)
+    
+    
+    def extract_zip(self, zip_file):
+        destination = zip_file.with_suffix('')  # 확장자 제거한 경로 생성
+        with zipfile.ZipFile(zip_file, 'r') as zip_data:
+            zip_data.extractall(destination)
+        return f"Extracted {zip_file} to {destination}"
