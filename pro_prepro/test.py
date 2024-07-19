@@ -1,27 +1,23 @@
-from pyspark.sql import SparkSession
 
-# spark = SparkSession.builder.getOrCreate()
-spark = SparkSession.builder \
-    .appName("ImageDataProcessing") \
-    .config("spark.driver.memory", "4g") \
-    .config("spark.executor.memory", "4g") \
-    .getOrCreate()
-
-from datetime import datetime, date
-import pandas as pd
-from pyspark.sql import Row
-
-from pyspark.sql.functions import col, split, udf
-from pyspark.sql.types import StringType, LongType, StructType, StructField
-import os
-import glob
+import logging
+from lib.prepro import Preprocessing
 
 
-# paths = glob.glob('./work/*')
-paths = glob.glob('../data/sand/*')
+prepro = Preprocessing() # 데이터 전처리 라이브러리 호출
+# logging 모드 설정: logging.INFO / logging.DEBUG
+# log_file = './log/test_log.log' # 데이터 처리 로그 저장 경로
+# logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
-img_dir_list = [path for path in paths if not path.endswith('.zip')]
-img_total_list = [glob.glob(folder+'/*') for folder in img_dir_list]
-img_paths = [img_path for sublist in img_total_list for img_path in sublist]
 
-print(img_paths)
+PATH_CCTV_DATA = 'G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터/*'
+PATH_SAND_DATA = 'G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터/*'
+PATH_SAND_LABEL = 'G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/02.라벨링데이터/*'
+
+cctv_data = prepro.get_all_file_paths(PATH_CCTV_DATA)
+# sand_data = prepro.get_all_file_paths(PATH_SAND_DATA)
+# sand_label_data = prepro.get_all_file_paths(PATH_SAND_LABEL)
+
+logging.info('test 진행중')
+logging.info(PATH_CCTV_DATA)
+logging.info(PATH_SAND_DATA)
+logging.info(PATH_SAND_LABEL)

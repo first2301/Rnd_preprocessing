@@ -10,14 +10,15 @@ services:
         - ./config
       environment:
           ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+      volumes:
+        # - G:/industry_data/dfs/data:/hadoop/dfs/name
+        - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/tmp/data/facility
+        - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/tmp/data/sand
    datanode:
       image: apache/hadoop:3
       command: ["hdfs", "datanode"]
       env_file:
-        - ./config  
-      volumes:
-        - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/tmp/data/facility
-        - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/tmp/data/sand
+        - ./config      
    resourcemanager:
       image: apache/hadoop:3
       hostname: resourcemanager
@@ -38,8 +39,17 @@ services:
       ports:
         - "8888:8888"
       volumes:
-        - F:/industry/git_prepro/pro_prepro:/home/jovyan/work/project
+        - .:/home/jovyan/work/project
         - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/home/jovyan/work/data/facility
         - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/home/jovyan/work/data/sand
-      environment:
-        - JUPYTER_TOKEN=
+
+#    networks:
+#       hadoop:
+#         driver: bridge
+  #  app:
+  #     build: .
+  #     volumes:
+  #       - .:/app
+  #       - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/app/facility
+  #       - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/app/sand
+  #     command: python app.py
