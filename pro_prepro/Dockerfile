@@ -1,16 +1,31 @@
-FROM jupyter/pyspark-notebook:latest
+FROM python:3.10-slim
 
-USER root
+# Upgrade pip and setuptools
+RUN pip install --upgrade pip && \
+    pip install --upgrade pip setuptools
+    
+WORKDIR /app
 
-# Install Java Development Kit (JDK)
-RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk-headless && \
-    rm -rf /var/lib/apt/lists/*
+COPY . .
 
-# Install Pydoop
-RUN pip install pydoop
+RUN pip install --no-cache-dir -r requirements.txt
 
-USER jovyan
+
+ENTRYPOINT "/bin/bash"
+
+# FROM jupyter/pyspark-notebook:latest
+
+# USER root
+
+# # Install Java Development Kit (JDK)
+# RUN apt-get update && \
+#     apt-get install -y openjdk-11-jdk-headless && \
+#     rm -rf /var/lib/apt/lists/*
+
+# # Install Pydoop
+# RUN pip install pydoop
+
+# USER jovyan
 
 # # 베이스 이미지로 Python 3.9 사용
 # FROM python:3.9-slim

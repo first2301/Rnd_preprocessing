@@ -12,8 +12,9 @@ from tqdm import tqdm
 from pathlib import Path
 import dask
 from pyspark.sql.session import SparkSession
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType, LongType
+from pyspark.sql.context import SparkContext
+from pyspark.sql.functions import udf, col
+from pyspark.sql.types import StringType, LongType, StructType
 
 class Preprocessing:
     def __init__(self):
@@ -21,7 +22,9 @@ class Preprocessing:
                     .config("spark.driver.memory", "4g") \
                     .config("spark.executor.memory", "4g") \
                     .getOrCreate()
+        # self.sc = SparkContext('local').setLogLevel("WARN")
 
+        
     def format_bytes(self, size): # 파일 용량 계산
         '''
         byte를 KB, MB, GB, TB 등으로 변경하는 함수
@@ -36,17 +39,17 @@ class Preprocessing:
         # return f"{size:.5f} {volum_labels[n]}"
         return f"{size} {volum_labels[n]}"
 
-    def normalize_json(self, json_meta_data): # json 형태의 데이터를 DataFrame으로 변환
-        '''
-        json데이터를 pandas DataFrame로 변경하는 함수
-        '''
-        json_df = []
-        for file in tqdm(json_meta_data):
-            with open(file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                data_df = pd.json_normalize(data)
-                json_df.append(data_df)
-        return json_df
+    # def normalize_json(self, json_meta_data): # json 형태의 데이터를 DataFrame으로 변환
+    #     '''
+    #     json데이터를 pandas DataFrame로 변경하는 함수
+    #     '''
+    #     json_df = []
+    #     for file in tqdm(json_meta_data):
+    #         with open(file, 'r', encoding='utf-8') as f:
+    #             data = json.load(f)
+    #             data_df = pd.json_normalize(data)
+    #             json_df.append(data_df)
+    #     return json_df
 
     @staticmethod
     @udf(StringType())
@@ -56,19 +59,59 @@ class Preprocessing:
         file_id = os.path.splitext(file_name)[0]
         return file_id
     
-    @staticmethod
-    def normalize_json(self, json_paths):
-        '''json 파일들을 Pyspark DataFrame으로 변환'''
-        df_list = []
-        for file in json_paths:
-            # JSON 파일을 Spark DataFrame으로 읽기
-            df = self.spark.read.json(file)
-            df = df.withColumn("file_id", self.extract_file_id()(df["full_path"]))
+    # @staticmethod
+    # def normalize_json(self, json_paths):
+    #     '''json 파일들을 Pyspark DataFrame으로 변환'''
+    #     df_list = []
+    #     for file in json_paths:
+    #         # JSON 파일을 Spark DataFrame으로 읽기
+    #         df = self.spark.read.json(file)
+    #         df = df.withColumn("file_id", self.extract_file_id()(df["full_path"]))
             
-            df_list.append(df)
+    #         df_list.append(df)
         
-        return df_list
+    #     return df_list
 
+    def normalize_json(self, json_meta_data):
+        '''
+        JSON 파일 경로 리스트를 입력받아 DataFrame으로 변환하는 함수
+        '''
+        # 빈 리스트를 만들어서 DataFrame을 저장
+        df_list = []
+    
+        for file in json_meta_data:
+            # JSON 파일을 DataFrame으로 읽기
+            df = self.spark.read.json(file, multiLine=True)
+    
+            # Flattening the DataFrame if needed
+            # 필요한 경우 중첩된 구조를 평탄화
+            flattened_df = self.flatten_df(df)
+            
+            df_list.append(flattened_df)
+            
+            return df_list
+
+    def flatten_df(self, df):
+        """
+        중첩된 JSON 구조를 평탄화하는 함수
+        """
+        # 리스트 형태의 중첩 구조를 평탄화
+        def flatten(x):
+            flat_dict = {}
+            for field in x:
+                if isinstance(x[field], dict):
+                    for subfield in x[field]:
+                        flat_dict[f"{field}_{subfield}"] = x[field][subfield]
+                else:
+                    flat_dict[field] = x[field]
+            return flat_dict
+
+        # Spark DataFrame의 각 레코드에 대해 평탄화 적용
+        rdd = df.rdd.map(lambda row: flatten(row.asDict()))
+        flattened_df = self.spark.createDataFrame(rdd)
+
+        return flattened_df
+    
     def log_system_resources(self):
         '''
         불필요한 자원이 사용되고 있는지 확인하는 함수
@@ -209,9 +252,16 @@ class SparkDataFrame:
     '''
     def __init__(self):
         self.spark = SparkSession.builder \
-            .config("spark.driver.memory", "4g") \
-            .config("spark.executor.memory", "4g") \
+            .appName("large_dataset") \
+            .config("spark.driver.memory", "16g") \
+            .config("spark.executor.memory", "16g") \
+            .config("spark.executor.instances", "20") \
+            .config("spark.executor.cores", "4") \
+            .config("spark.sql.shuffle.partitions", "2000") \
             .getOrCreate()
+            # .config("spark.driver.memory", "4g") \
+            # .config("spark.executor.memory", "4g") \
+            # .getOrCreate()
 
     @staticmethod
     @udf(StringType())
@@ -248,6 +298,22 @@ class SparkDataFrame:
         df = df.withColumn("file_size", self.extract_file_size("full_path"))
         return df
     
+    def get_spark_json(self, path):
+        spark = self.spark
+    #     empty_rdd = self.spark.sparkContext.emptyRDD()
+    #     schema = StructType([]) 
+    #     empty_df = self.spark.createDataFrame(empty_rdd, schema)
+    # # 진행 상태 표시를 위한 tqdm
+    #     for path in tqdm(path, desc="Reading JSON files"):
+    #         if os.path.exists(path):
+    #             temp_df = spark.read.json(path)
+    #             empty_df = empty_df.union(temp_df)
+    #         else:
+    #             print(f"Warning: {path} does not exist.")
+
+        return spark.read.json(path, multiLine=True)
+
+
     # def __del__(self):
     #     # 클래스 인스턴스가 소멸될 때 SparkSession을 종료
     #     self.spark.stop()

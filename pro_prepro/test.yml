@@ -1,0 +1,15 @@
+# docker-compose -f test.yml up
+services:
+  # app:
+  #   build: .
+  #   volumes:
+  #     - .:/tmp/local_src
+  spark:
+    image: jupyter/pyspark-notebook
+    ports:
+      - 8888:8888   
+    volumes:
+      - .:/home/jovyan/work/local_src
+      - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/home/joyvan/work/cctv_data
+      - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/home/joyvan/work/sand_data
+      - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/02.라벨링데이터:/home/joyvan/work/sand_label_data
