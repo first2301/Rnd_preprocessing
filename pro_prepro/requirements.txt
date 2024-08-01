@@ -1,5 +1,9 @@
 pandas
-pyspark
+pyspark==3.4.0
 dask
 streamlit==1.26.0
 tqdm
+fastapi
+uvicorn
+psutil
+findspark
