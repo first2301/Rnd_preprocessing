@@ -184,6 +184,44 @@ class Preprocessing:
     def get_file_size(self, path):
         return os.path.getsize(path)
     
+    def print_data_type_num(self, path):
+        # 데이터 타입별로 counts 확인
+        data_types = ['png', 'jpg', 'jpeg', 'etc', 'json']
+        png_num = 0
+        jpg_num = 0
+        csv_num = 0
+        json_num = 0
+        etc = 0
+        type_data = [] 
+        for data in path:
+            type_data.append(data.split('.')[-1])
+        
+        for idx, data_types in enumerate(type_data):
+            if data_types == 'png':
+                png_num += 1
+            elif data_types == 'jpg' or data_types == 'jpeg':
+                jpg_num += 1
+            elif data_types == 'csv':
+                csv_num += 1
+            elif data_types == 'json':
+                json_num += 1
+            else:
+                etc += 1
+
+        file_info = f"""
+            데이터 처리 정보: 
+            -------------------------------------- 
+            전체 이미지 데이터 수: {len(path)} 
+            png counts: {png_num} 
+            jpg counts: {jpg_num} 
+            csv counts: {csv_num}
+            json counts: {json_num}
+            etc counts: {etc} 
+            -------------------------------------- 
+            """
+        return file_info
+
+
     def ptint_data_info(self, merge_df):
         # 데이터 타입별로 counts 확인
         data_types = ['png', 'jpg', 'jpeg', 'etc']
@@ -276,12 +314,16 @@ class SparkDataFrame:
 
         conf = SparkConf() \
             .setAppName("large_dataset") \
-            .set("spark.driver.memory", "16g") \
-            .set("spark.executor.memory", "16g") \
-            .set("spark.executor.instances", "10") \
+            .set("spark.driver.memory", "8g") \
+            .set("spark.executor.memory", "8g") \
             .set("spark.executor.cores", "4") \
-            .set("spark.sql.shuffle.partitions", "200") \
-            .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+            .set("spark.sql.shuffle.partitions", "8") \
+            # .set("spark.driver.memory", "16g") \
+            # .set("spark.executor.memory", "16g") \
+            # .set("spark.executor.instances", "10") \
+            # .set("spark.executor.cores", "4") \
+            # .set("spark.sql.shuffle.partitions", "200") \
+            # .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
 
         # SparkSession 생성
         self.spark = SparkSession.builder \
@@ -331,6 +373,19 @@ class SparkDataFrame:
     def get_spark_json(self, path):
         spark = self.spark
         return spark.read.json(path, multiLine=True)
+
+    def check_data_type(self, df):
+        jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
+        png_counts = df.filter(col("file_name").contains(".png")).count()
+        jpeg_counts = df.filter(col("file_name").contains(".jpeg")).count()
+        csv_counts = df.filter(col("file_name").contains(".csv")).count()
+        json_counts = df.filter(col("file_name").contains(".json")).count()
+        etc_counts = df.filter(~col("file_name").rlike(r"\.(jpg|png|jpeg|csv|json)$")).count()
+
+        type_list = [('jpg_counts', jpg_counts), ('jpeg_counts', jpeg_counts), 
+                     ('png_counts', png_counts), ('csv_counts', csv_counts), ('json_counts', json_counts), ('etc_counts', etc_counts)]
+        result_df = self.spark.createDataFrame(type_list)
+        return result_df
 
     def spark_stop(self):
         return self.spark.stop()

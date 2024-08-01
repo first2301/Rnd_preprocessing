@@ -9,6 +9,7 @@ services:
         - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/home/jovyan/work/local_src/cctv_data
         - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/home/jovyan/work/local_src/sand_data
         - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/02.라벨링데이터:/home/jovyan/work/local_src/sand_label_data
+        - G:\industry_data\preprocessed_data:/home/jovyan/work/local_src/preprocessed_data
         
 # version: "2"
 # services:

@@ -12,18 +12,20 @@ from tqdm import tqdm
 from pathlib import Path
 import dask
 from pyspark.sql.session import SparkSession
+from pyspark.conf import SparkConf
 from pyspark.sql.context import SparkContext
 from pyspark.sql.functions import udf, col
 from pyspark.sql.types import StringType, LongType, StructType
-
+import findspark
+findspark.init()
 class Preprocessing:
     def __init__(self):
-        self.spark = SparkSession.builder \
-                    .config("spark.driver.memory", "4g") \
-                    .config("spark.executor.memory", "4g") \
-                    .getOrCreate()
+        # self.spark = SparkSession.builder \
+        #             .config("spark.driver.memory", "4g") \
+        #             .config("spark.executor.memory", "4g") \
+        #             .getOrCreate()
         # self.sc = SparkContext('local').setLogLevel("WARN")
-
+        pass
         
     def format_bytes(self, size): # 파일 용량 계산
         '''
@@ -51,13 +53,7 @@ class Preprocessing:
     #             json_df.append(data_df)
     #     return json_df
 
-    @staticmethod
-    @udf(StringType())
-    def extract_file_id(paths):
-        '''file_id 추출'''
-        file_name = os.path.basename(paths)
-        file_id = os.path.splitext(file_name)[0]
-        return file_id
+
     
     # @staticmethod
     # def normalize_json(self, json_paths):
@@ -81,7 +77,7 @@ class Preprocessing:
     
         for file in json_meta_data:
             # JSON 파일을 DataFrame으로 읽기
-            df = self.spark.read.json(file)
+            df = self.spark.read.json(file, multiLine=True)
     
             # Flattening the DataFrame if needed
             # 필요한 경우 중첩된 구조를 평탄화
@@ -146,6 +142,21 @@ class Preprocessing:
         img_paths = [img_path for sublist in img_total_list for img_path in sublist]
         return img_paths
     
+    def scan_directory(self, path):
+        # 스택을 초기화하고 시작 디렉터리를 추가
+        stack = [path]
+        total_paths = []
+        while stack:
+            current_path = stack.pop()
+            
+            with os.scandir(current_path) as it:
+                for entry in it:
+                    if entry.is_file() and not entry.name.endswith('.zip'):
+                        total_paths.append(entry.path)
+                    elif entry.is_dir(): # 디렉터리인 경우 스택에 추가
+                        stack.append(entry.path)
+        return total_paths
+
     def get_all_file_paths(self, root_path):
         paths = glob.glob(root_path)
         img_dir_list = [path for path in paths if not path.endswith('.zip')]
@@ -251,18 +262,41 @@ class SparkDataFrame:
     spark dataframe 생성
     '''
     def __init__(self):
-        self.spark = SparkSession.builder \
-            .appName("large_dataset") \
-            .config("spark.driver.memory", "16g") \
-            .config("spark.executor.memory", "16g") \
-            .config("spark.executor.instances", "20") \
-            .config("spark.executor.cores", "4") \
-            .config("spark.sql.shuffle.partitions", "2000") \
-            .getOrCreate()
-            # .config("spark.driver.memory", "4g") \
-            # .config("spark.executor.memory", "4g") \
-            # .getOrCreate()
+        # self.spark = SparkSession.builder \
+        #     .appName("large_dataset") \
+        #     .config("spark.driver.memory", "16g") \
+        #     .config("spark.executor.memory", "16g") \
+        #     .config("spark.executor.instances", "20") \
+        #     .config("spark.executor.cores", "4") \
+        #     .config("spark.sql.shuffle.partitions", "2000") \
+        #     .getOrCreate()
 
+        # conf = SparkConf().set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        # self.sc = SparkContext(conf=conf)
+
+        conf = SparkConf() \
+            .setAppName("large_dataset") \
+            .set("spark.driver.memory", "8g") \
+            .set("spark.executor.memory", "8g") \
+            .set("spark.executor.cores", "4") \
+            .set("spark.sql.shuffle.partitions", "8") \
+            # .set("spark.driver.memory", "16g") \
+            # .set("spark.executor.memory", "16g") \
+            # .set("spark.executor.instances", "10") \
+            # .set("spark.executor.cores", "4") \
+            # .set("spark.sql.shuffle.partitions", "200") \
+            # .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+
+        # SparkSession 생성
+        self.spark = SparkSession.builder \
+            .config(conf=conf) \
+            .getOrCreate()
+        # self.sc = SparkContext(conf=conf)
+    
+    @staticmethod
+    def spark_to_pandas(df):
+        return df.toPandas()
+    
     @staticmethod
     @udf(StringType())
     def extract_file_id(paths):
@@ -300,63 +334,26 @@ class SparkDataFrame:
     
     def get_spark_json(self, path):
         spark = self.spark
-    #     empty_rdd = self.spark.sparkContext.emptyRDD()
-    #     schema = StructType([]) 
-    #     empty_df = self.spark.createDataFrame(empty_rdd, schema)
-    # # 진행 상태 표시를 위한 tqdm
-    #     for path in tqdm(path, desc="Reading JSON files"):
-    #         if os.path.exists(path):
-    #             temp_df = spark.read.json(path)
-    #             empty_df = empty_df.union(temp_df)
-    #         else:
-    #             print(f"Warning: {path} does not exist.")
-
         return spark.read.json(path, multiLine=True)
 
+    def check_data_type(self, df):
+        jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
+        png_counts = df.filter(col("file_name").contains(".png")).count()
+        jpeg_counts = df.filter(col("file_name").contains(".jpeg")).count()
+        csv_counts = df.filter(col("file_name").contains(".csv")).count()
+        json_counts = df.filter(col("file_name").contains(".json")).count()
+        etc_counts = df.filter(~col("file_name").rlike(r"\.(jpg|png|jpeg|csv|json)$")).count()
 
+        type_list = [('jpg_counts', jpg_counts), ('jpeg_counts', jpeg_counts), 
+                     ('png_counts', png_counts), ('csv_counts', csv_counts), ('json_counts', json_counts), ('etc_counts', etc_counts)]
+        result_df = self.spark.createDataFrame(type_list)
+        return result_df
+
+    def spark_stop(self):
+        return self.spark.stop()
     # def __del__(self):
     #     # 클래스 인스턴스가 소멸될 때 SparkSession을 종료
     #     self.spark.stop()
 
 
-# class SparkDataFrame:
-#     def __init__(self):
-#         self.spark = SparkSession.builder \
-#             .config("spark.driver.memory", "4g") \
-#             .config("spark.executor.memory", "4g") \
-#             .getOrCreate()
 
-#     def get_file_id_udf(self):
-#         def extract_file_id(paths):
-#             '''file_id 추출'''
-#             file_name = os.path.basename(paths)
-#             file_id = os.path.splitext(file_name)[0]
-#             return file_id
-#         return udf(extract_file_id, StringType())
-
-#     def get_file_name_udf(self):
-#         def extract_file_name(paths):
-#             '''file_name 추출'''
-#             return os.path.basename(paths)
-#         return udf(extract_file_name, StringType())
-
-#     def get_folder_name_udf(self):
-#         def extract_folder_name(paths):
-#             '''folder_name 추출'''
-#             return os.path.basename(os.path.dirname(paths))
-#         return udf(extract_folder_name, StringType())
-    
-#     def get_file_size_udf(self):
-#         def extract_file_size(paths):
-#             '''folder_name 추출'''
-#             return os.path.getsize(paths)
-#         return udf(extract_file_size, StringType())
-
-#     def get_spark_dataframe(self, paths):
-#         '''spark_dataframe 생성'''
-#         df = self.spark.createDataFrame([(path,) for path in paths], ["full_path"])
-#         df = df.withColumn("file_id", self.get_file_id_udf()("full_path"))
-#         df = df.withColumn("file_name", self.get_file_name_udf()("full_path"))
-#         df = df.withColumn("folder_name", self.get_folder_name_udf()("full_path"))
-#         df = df.withColumn("file_size", self.get_file_size_udf()("full_path"))
-#         return df
