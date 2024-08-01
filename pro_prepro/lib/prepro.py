@@ -330,17 +330,6 @@ class SparkDataFrame:
     
     def get_spark_json(self, path):
         spark = self.spark
-    #     empty_rdd = self.spark.sparkContext.emptyRDD()
-    #     schema = StructType([]) 
-    #     empty_df = self.spark.createDataFrame(empty_rdd, schema)
-    # # 진행 상태 표시를 위한 tqdm
-    #     for path in tqdm(path, desc="Reading JSON files"):
-    #         if os.path.exists(path):
-    #             temp_df = spark.read.json(path)
-    #             empty_df = empty_df.union(temp_df)
-    #         else:
-    #             print(f"Warning: {path} does not exist.")
-
         return spark.read.json(path, multiLine=True)
 
     def spark_stop(self):
