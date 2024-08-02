@@ -7,3 +7,4 @@ fastapi
 uvicorn
 psutil
 findspark
+ipykernel==6.29.5

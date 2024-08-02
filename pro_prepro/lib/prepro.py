@@ -387,6 +387,9 @@ class SparkDataFrame:
         result_df = self.spark.createDataFrame(type_list)
         return result_df
 
+    def read_parquet(self, path):
+        return self.spark.read.parquet(path)
+        
     def spark_stop(self):
         return self.spark.stop()
     # def __del__(self):
