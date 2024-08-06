@@ -45,3 +45,5 @@ elapsed_time = end_time - start_time  # 경과된 시간 계산
 minutes, seconds = divmod(elapsed_time, 60) # ms를 분, 초로 변환
 logging.info("경과 시간: {}분 {}초".format(int(minutes), int(seconds))) # 분, 초로 변환한 데이터 로깅
 logging.info('데이터 처리 종료') 
+
+

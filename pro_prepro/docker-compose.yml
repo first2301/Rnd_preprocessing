@@ -1,74 +1,24 @@
-# version: "2"
-# services:
-#     spark:
-#       image: jupyter/pyspark-notebook
-#       ports:
-#         - 8888:8888   
-#       volumes:
-#         - .:/home/jovyan/work/local_src
-#         - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/home/jovyan/work/local_src/cctv_data
-#         - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/home/jovyan/work/local_src/sand_data
-#         - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/02.라벨링데이터:/home/jovyan/work/local_src/sand_label_data
-#         - G:\industry_data\preprocessed_data:/home/jovyan/work/local_src/preprocessed_data
-        
-# version: "2"
 services:
-  namenode:
-    image: apache/hadoop:3
-    hostname: namenode
-    command: ["hdfs", "namenode"]
-    ports:
-      - 9870:9870
-    env_file:
-      - ./config
-    environment:
-        ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
-    volumes:
-      # - G:/industry_data/dfs/data:/hadoop/dfs/name
-      - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/tmp/data/facility
-      - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/tmp/data/sand
-      - G:/industry_data/test_local_data:/tmp/data/test_local_data
-      - G:/industry_data/preprocessed_data:/tmp/data/preprocessed_data
-  datanode:
-    image: apache/hadoop:3
-    command: ["hdfs", "datanode"]
-    env_file:
-      - ./config      
-  resourcemanager:
-    image: apache/hadoop:3
-    hostname: resourcemanager
-    command: ["yarn", "resourcemanager"]
-    ports:
-        - 8088:8088
-    env_file:
-      - ./config
-    volumes:
-      - ./test.sh:/opt/test.sh
-  nodemanager:
-    image: apache/hadoop:3
-    command: ["yarn", "nodemanager"]
-    env_file:
-      - ./config
   spark:
-    image: jupyter/pyspark-notebook
+    build: .
     ports:
-      - 8888:8888   
+      - 8888:8888
+      - 4040:4040
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    depends_on:
+      - postgres
     volumes:
       - .:/home/jovyan/work/local_src
       - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/home/jovyan/work/local_src/cctv_data
       - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/home/jovyan/work/local_src/sand_data
       - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/02.라벨링데이터:/home/jovyan/work/local_src/sand_label_data
       - G:/industry_data/preprocessed_data:/home/jovyan/work/local_src/preprocessed_data
-
-
-
-#    networks:
-#       hadoop:
-#         driver: bridge
-  #  app:
-  #     build: .
-  #     volumes:
-  #       - .:/app
-  #       - G:/industry_data/117.산업시설 열화상 CCTV 데이터/01.데이터/1.Training/원천데이터:/app/facility
-  #       - G:/industry_data/264.건설 모래 품질 관리데이터/01-1.정식개방데이터/Training/01.원천데이터:/app/sand
-  #     command: python app.py
+  postgres:
+    image: postgres
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - 5432:5432

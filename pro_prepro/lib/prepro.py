@@ -16,8 +16,10 @@ from pyspark.conf import SparkConf
 from pyspark.sql.context import SparkContext
 from pyspark.sql.functions import udf, col
 from pyspark.sql.types import StringType, LongType, StructType
+
 import findspark
 findspark.init()
+
 class Preprocessing:
     def __init__(self):
         # self.spark = SparkSession.builder \
@@ -300,37 +302,18 @@ class SparkDataFrame:
     spark dataframe 생성
     '''
     def __init__(self):
-        # self.spark = SparkSession.builder \
-        #     .appName("large_dataset") \
-        #     .config("spark.driver.memory", "16g") \
-        #     .config("spark.executor.memory", "16g") \
-        #     .config("spark.executor.instances", "20") \
-        #     .config("spark.executor.cores", "4") \
-        #     .config("spark.sql.shuffle.partitions", "2000") \
-        #     .getOrCreate()
-
-        # conf = SparkConf().set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        # self.sc = SparkContext(conf=conf)
-
+        findspark.init()
         conf = SparkConf() \
             .setAppName("large_dataset") \
             .set("spark.driver.memory", "8g") \
             .set("spark.executor.memory", "8g") \
             .set("spark.executor.cores", "4") \
-            .set("spark.sql.shuffle.partitions", "8") \
-            # .set("spark.driver.memory", "16g") \
-            # .set("spark.executor.memory", "16g") \
-            # .set("spark.executor.instances", "10") \
-            # .set("spark.executor.cores", "4") \
-            # .set("spark.sql.shuffle.partitions", "200") \
-            # .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-
+            .set("spark.jars", "/usr/local/spark/jars/postgresql-42.7.3.jar")
         # SparkSession 생성
         self.spark = SparkSession.builder \
             .config(conf=conf) \
             .getOrCreate()
-        # self.sc = SparkContext(conf=conf)
-    
+        
     @staticmethod
     def spark_to_pandas(df):
         return df.toPandas()
@@ -369,23 +352,22 @@ class SparkDataFrame:
         df = df.withColumn("folder_name", self.extract_folder_name("full_path"))
         df = df.withColumn("file_size", self.extract_file_size("full_path"))
         return df
+
+    # def check_data_type(self, df):
+    #     jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
+    #     png_counts = df.filter(col("file_name").contains(".png")).count()
+    #     jpeg_counts = df.filter(col("file_name").contains(".jpeg")).count()
+    #     csv_counts = df.filter(col("file_name").contains(".csv")).count()
+    #     json_counts = df.filter(col("file_name").contains(".json")).count()
+    #     etc_counts = df.filter(~col("file_name").rlike(r"\.(jpg|png|jpeg|csv|json)$")).count()
+
+    #     type_list = [('jpg_counts', jpg_counts), ('jpeg_counts', jpeg_counts), 
+    #                  ('png_counts', png_counts), ('csv_counts', csv_counts), ('json_counts', json_counts), ('etc_counts', etc_counts)]
+    #     result_df = self.spark.createDataFrame(type_list)
+    #     return result_df
     
-    def get_spark_json(self, path):
-        spark = self.spark
-        return spark.read.json(path, multiLine=True)
-
-    def check_data_type(self, df):
-        jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
-        png_counts = df.filter(col("file_name").contains(".png")).count()
-        jpeg_counts = df.filter(col("file_name").contains(".jpeg")).count()
-        csv_counts = df.filter(col("file_name").contains(".csv")).count()
-        json_counts = df.filter(col("file_name").contains(".json")).count()
-        etc_counts = df.filter(~col("file_name").rlike(r"\.(jpg|png|jpeg|csv|json)$")).count()
-
-        type_list = [('jpg_counts', jpg_counts), ('jpeg_counts', jpeg_counts), 
-                     ('png_counts', png_counts), ('csv_counts', csv_counts), ('json_counts', json_counts), ('etc_counts', etc_counts)]
-        result_df = self.spark.createDataFrame(type_list)
-        return result_df
+    def read_json(self, path):
+        return self.spark.read.json(path, multiLine=True)
 
     def read_parquet(self, path):
         return self.spark.read.parquet(path)
