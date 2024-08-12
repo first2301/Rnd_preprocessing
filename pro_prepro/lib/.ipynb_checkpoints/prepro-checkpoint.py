@@ -1,5 +1,5 @@
 import os
-import json
+# import json
 import time
 import glob
 import psutil
@@ -10,14 +10,16 @@ import subprocess
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
-import dask
+# import dask
 from pyspark.sql.session import SparkSession
 from pyspark.conf import SparkConf
 from pyspark.sql.context import SparkContext
 from pyspark.sql.functions import udf, col
 from pyspark.sql.types import StringType, LongType, StructType
+
 import findspark
 findspark.init()
+
 class Preprocessing:
     def __init__(self):
         # self.spark = SparkSession.builder \
@@ -184,6 +186,44 @@ class Preprocessing:
     def get_file_size(self, path):
         return os.path.getsize(path)
     
+    def print_data_type_num(self, path):
+        # 데이터 타입별로 counts 확인
+        data_types = ['png', 'jpg', 'jpeg', 'etc', 'json']
+        png_num = 0
+        jpg_num = 0
+        csv_num = 0
+        json_num = 0
+        etc = 0
+        type_data = [] 
+        for data in path:
+            type_data.append(data.split('.')[-1])
+        
+        for idx, data_types in enumerate(type_data):
+            if data_types == 'png':
+                png_num += 1
+            elif data_types == 'jpg' or data_types == 'jpeg':
+                jpg_num += 1
+            elif data_types == 'csv':
+                csv_num += 1
+            elif data_types == 'json':
+                json_num += 1
+            else:
+                etc += 1
+
+        file_info = f"""
+            데이터 처리 정보: 
+            -------------------------------------- 
+            전체 이미지 데이터 수: {len(path)} 
+            png counts: {png_num} 
+            jpg counts: {jpg_num} 
+            csv counts: {csv_num}
+            json counts: {json_num}
+            etc counts: {etc} 
+            -------------------------------------- 
+            """
+        return file_info
+
+
     def ptint_data_info(self, merge_df):
         # 데이터 타입별로 counts 확인
         data_types = ['png', 'jpg', 'jpeg', 'etc']
@@ -262,40 +302,17 @@ class SparkDataFrame:
     spark dataframe 생성
     '''
     def __init__(self):
-        # self.spark = SparkSession.builder \
-        #     .appName("large_dataset") \
-        #     .config("spark.driver.memory", "16g") \
-        #     .config("spark.executor.memory", "16g") \
-        #     .config("spark.executor.instances", "20") \
-        #     .config("spark.executor.cores", "4") \
-        #     .config("spark.sql.shuffle.partitions", "2000") \
-        #     .getOrCreate()
-
-        # conf = SparkConf().set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        # self.sc = SparkContext(conf=conf)
-
+        findspark.init()
         conf = SparkConf() \
             .setAppName("large_dataset") \
             .set("spark.driver.memory", "8g") \
             .set("spark.executor.memory", "8g") \
             .set("spark.executor.cores", "4") \
-            .set("spark.sql.shuffle.partitions", "8") \
-            # .set("spark.driver.memory", "16g") \
-            # .set("spark.executor.memory", "16g") \
-            # .set("spark.executor.instances", "10") \
-            # .set("spark.executor.cores", "4") \
-            # .set("spark.sql.shuffle.partitions", "200") \
-            # .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-
+            .set("spark.jars", "/usr/local/spark/jars/postgresql-42.7.3.jar")
         # SparkSession 생성
         self.spark = SparkSession.builder \
             .config(conf=conf) \
             .getOrCreate()
-        # self.sc = SparkContext(conf=conf)
-    
-    @staticmethod
-    def spark_to_pandas(df):
-        return df.toPandas()
     
     @staticmethod
     @udf(StringType())
@@ -331,24 +348,26 @@ class SparkDataFrame:
         df = df.withColumn("folder_name", self.extract_folder_name("full_path"))
         df = df.withColumn("file_size", self.extract_file_size("full_path"))
         return df
+
+    # def check_data_type(self, df):
+    #     jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
+    #     png_counts = df.filter(col("file_name").contains(".png")).count()
+    #     jpeg_counts = df.filter(col("file_name").contains(".jpeg")).count()
+    #     csv_counts = df.filter(col("file_name").contains(".csv")).count()
+    #     json_counts = df.filter(col("file_name").contains(".json")).count()
+    #     etc_counts = df.filter(~col("file_name").rlike(r"\.(jpg|png|jpeg|csv|json)$")).count()
+
+    #     type_list = [('jpg_counts', jpg_counts), ('jpeg_counts', jpeg_counts), 
+    #                  ('png_counts', png_counts), ('csv_counts', csv_counts), ('json_counts', json_counts), ('etc_counts', etc_counts)]
+    #     result_df = self.spark.createDataFrame(type_list)
+    #     return result_df
     
-    def get_spark_json(self, path):
-        spark = self.spark
-        return spark.read.json(path, multiLine=True)
+    def read_json(self, path):
+        return self.spark.read.json(path, multiLine=True)
 
-    def check_data_type(self, df):
-        jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
-        png_counts = df.filter(col("file_name").contains(".png")).count()
-        jpeg_counts = df.filter(col("file_name").contains(".jpeg")).count()
-        csv_counts = df.filter(col("file_name").contains(".csv")).count()
-        json_counts = df.filter(col("file_name").contains(".json")).count()
-        etc_counts = df.filter(~col("file_name").rlike(r"\.(jpg|png|jpeg|csv|json)$")).count()
-
-        type_list = [('jpg_counts', jpg_counts), ('jpeg_counts', jpeg_counts), 
-                     ('png_counts', png_counts), ('csv_counts', csv_counts), ('json_counts', json_counts), ('etc_counts', etc_counts)]
-        result_df = self.spark.createDataFrame(type_list)
-        return result_df
-
+    def read_parquet(self, path):
+        return self.spark.read.parquet(path)
+        
     def spark_stop(self):
         return self.spark.stop()
     # def __del__(self):

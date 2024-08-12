@@ -3,7 +3,7 @@ import logging
 
 # from pyspark.sql.session import SparkSession
 # from pyspark.sql.context import SparkContext
-from lib.prepro import Preprocessing, SparkDataFrame
+from lib.prepro import Preprocessing
 
 start_time = time.time()
 
@@ -17,7 +17,7 @@ PATH_SAND_LABEL = 'G:/industry_data/264.건설 모래 품질 관리데이터/01-
 
 
 prepro = Preprocessing() # 데이터 전처리 라이브러리 호출
-sdf = SparkDataFrame()
+
 
 cctv_data_path = prepro.get_all_file_paths(PATH_CCTV_DATA)
 sand_data_path = prepro.get_all_file_paths(PATH_SAND_DATA)
@@ -30,15 +30,9 @@ print(cctv_data_path[:1])
 print(sand_data_path[:1])
 print(sand_label_data_path[:1])
 
-test_df = sdf.get_spark_dataframe(cctv_data_path)
 
-test_result = sdf.spark_to_pandas(test_df)
-
-print(test_result[:2])
 # logging.info(PATH_SAND_DATA)
 
-
-sdf.spark_stop()
 
 end_time = time.time()  # 실행 후 시간을 기록
 elapsed_time = end_time - start_time  # 경과된 시간 계산

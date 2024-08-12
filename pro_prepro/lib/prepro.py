@@ -1,5 +1,5 @@
 import os
-import json
+# import json
 import time
 import glob
 import psutil
@@ -10,7 +10,7 @@ import subprocess
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
-import dask
+# import dask
 from pyspark.sql.session import SparkSession
 from pyspark.conf import SparkConf
 from pyspark.sql.context import SparkContext
@@ -313,10 +313,6 @@ class SparkDataFrame:
         self.spark = SparkSession.builder \
             .config(conf=conf) \
             .getOrCreate()
-        
-    @staticmethod
-    def spark_to_pandas(df):
-        return df.toPandas()
     
     @staticmethod
     @udf(StringType())
