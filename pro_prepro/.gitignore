@@ -1,3 +1,4 @@
 *.parquet
 data
 database
+git_automation

@@ -159,6 +159,11 @@ class Preprocessing:
                         stack.append(entry.path)
         return total_paths
 
+    def get_all_zip_file_paths(self, root_path):
+        # ZIP 파일 경로를 찾기
+        zip_paths = glob.glob(root_path)
+        return zip_paths
+
     def get_all_file_paths(self, root_path):
         paths = glob.glob(root_path)
         img_dir_list = [path for path in paths if not path.endswith('.zip')]
@@ -281,7 +286,8 @@ class Preprocessing:
             logging.info("전체 디렉토리 구조:\n%s", total_dir.stdout)
     
     # @dask.delayed
-    def extract_zip(self, zip_file):
+    def extract_zip(self, zip_file_path):
+        zip_file = Path(zip_file_path)
         destination = zip_file.with_suffix('')  # 확장자 제거한 경로 생성
         with zipfile.ZipFile(zip_file, 'r') as zip_data:
             zip_data.extractall(destination)
@@ -313,6 +319,8 @@ class SparkDataFrame:
         self.spark = SparkSession.builder \
             .config(conf=conf) \
             .getOrCreate()
+        self.sc = self.spark.sparkContext
+
     
     @staticmethod
     @udf(StringType())
@@ -349,6 +357,9 @@ class SparkDataFrame:
         df = df.withColumn("file_size", self.extract_file_size("full_path"))
         return df
 
+    def get_rdd(self, file_content): 
+        # rdd 생성
+        return self.sc.parallelize([file_content]) # RDD
     # def check_data_type(self, df):
     #     jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
     #     png_counts = df.filter(col("file_name").contains(".png")).count()

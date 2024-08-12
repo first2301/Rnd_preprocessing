@@ -17,6 +17,7 @@ services:
       - postgres
     volumes:
       - .:/home/jovyan/work/local_src
+      - G:/industry_data:/home/jovyan/work/local_src/industry_data
       - /mnt/G:/industry_data/preprocessed_data:/home/jovyan/work/local_src/preprocessed_data
   postgres:
     image: postgres
@@ -44,8 +45,8 @@ services:
     command: ["hdfs", "datanode"]
     env_file:
       - ./config      
-    # volumes:
-    #   - /mnt/G:/industry_data/hadoop-datanode-data:/tmp/hadoop-root/dfs/name
+    volumes:
+      - /mnt/G:/industry_data/hadoop-datanode-data:/tmp/hadoop-root/dfs/name
   resourcemanager:
     image: apache/hadoop:3
     hostname: resourcemanager
