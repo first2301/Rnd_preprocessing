@@ -16,7 +16,7 @@ from pyspark.conf import SparkConf
 from pyspark.sql.context import SparkContext
 from pyspark.sql.functions import udf, col
 from pyspark.sql.types import StringType, LongType, StructType
-
+import polars as pl
 import findspark
 findspark.init()
 
@@ -314,7 +314,9 @@ class SparkDataFrame:
             .set("spark.driver.memory", "8g") \
             .set("spark.executor.memory", "8g") \
             .set("spark.executor.cores", "4") \
-            .set("spark.jars", "/usr/local/spark/jars/postgresql-42.7.3.jar")
+            .set("spark.sql.shuffle.partitions", 1000) \
+            .set("spark.jars", "/usr/local/spark/jars/postgresql-42.7.3.jar") \
+            .set("spark.rpc.message.maxSize", "512") \
         # SparkSession 생성
         self.spark = SparkSession.builder \
             .config(conf=conf) \
@@ -378,12 +380,55 @@ class SparkDataFrame:
 
     def read_parquet(self, path):
         return self.spark.read.parquet(path)
-        
+
+    def save_parquet(data, path, comp_type="snappy"):
+        data.write \
+            .mode("overwrite") \
+            .option("compression", comp_type) \
+            .parquet(path)
+
     def spark_stop(self):
         return self.spark.stop()
     # def __del__(self):
     #     # 클래스 인스턴스가 소멸될 때 SparkSession을 종료
     #     self.spark.stop()
 
+class PolarsDataFrame:
+    '''
+    polars dataframe 생성
+    '''
+    def __init__(self):
+        # Polars는 별도의 설정이 필요하지 않습니다.
+        pass
 
+    @staticmethod
+    def extract_file_id(paths):
+        '''file_id 추출'''
+        return [os.path.splitext(os.path.basename(path))[0] for path in paths]
+
+    @staticmethod
+    def extract_file_name(paths):
+        '''file_name 추출'''
+        return [os.path.basename(path) for path in paths]
+
+    @staticmethod
+    def extract_folder_name(paths):
+        '''folder_name 추출'''
+        return [os.path.basename(os.path.dirname(path)) for path in paths]
+
+    @staticmethod
+    def extract_file_size(paths):
+        '''file_size 추출'''
+        return [os.path.getsize(path) for path in paths]
+
+    def get_polars_dataframe(self, paths):
+        '''polars_dataframe 생성'''
+        df = pl.DataFrame({
+            "full_path": paths,
+            "file_id": self.extract_file_id(paths),
+            "file_name": self.extract_file_name(paths),
+            "folder_name": self.extract_folder_name(paths),
+            "file_size": self.extract_file_size(paths)
+        })
+        return df
 

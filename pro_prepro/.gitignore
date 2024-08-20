@@ -1,4 +1,6 @@
 *.parquet
 data
 database
-git_automation
+sand_data
+exhdd
+preprocessed_data

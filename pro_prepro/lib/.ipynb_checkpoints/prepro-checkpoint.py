@@ -16,7 +16,7 @@ from pyspark.conf import SparkConf
 from pyspark.sql.context import SparkContext
 from pyspark.sql.functions import udf, col
 from pyspark.sql.types import StringType, LongType, StructType
-
+import polars as pl
 import findspark
 findspark.init()
 
@@ -159,6 +159,11 @@ class Preprocessing:
                         stack.append(entry.path)
         return total_paths
 
+    def get_all_zip_file_paths(self, root_path):
+        # ZIP 파일 경로를 찾기
+        zip_paths = glob.glob(root_path)
+        return zip_paths
+
     def get_all_file_paths(self, root_path):
         paths = glob.glob(root_path)
         img_dir_list = [path for path in paths if not path.endswith('.zip')]
@@ -281,7 +286,8 @@ class Preprocessing:
             logging.info("전체 디렉토리 구조:\n%s", total_dir.stdout)
     
     # @dask.delayed
-    def extract_zip(self, zip_file):
+    def extract_zip(self, zip_file_path):
+        zip_file = Path(zip_file_path)
         destination = zip_file.with_suffix('')  # 확장자 제거한 경로 생성
         with zipfile.ZipFile(zip_file, 'r') as zip_data:
             zip_data.extractall(destination)
@@ -308,11 +314,15 @@ class SparkDataFrame:
             .set("spark.driver.memory", "8g") \
             .set("spark.executor.memory", "8g") \
             .set("spark.executor.cores", "4") \
-            .set("spark.jars", "/usr/local/spark/jars/postgresql-42.7.3.jar")
+            .set("spark.sql.shuffle.partitions", 1000) \
+            .set("spark.jars", "/usr/local/spark/jars/postgresql-42.7.3.jar") \
+            .set("spark.rpc.message.maxSize", "512") \
         # SparkSession 생성
         self.spark = SparkSession.builder \
             .config(conf=conf) \
             .getOrCreate()
+        self.sc = self.spark.sparkContext
+
     
     @staticmethod
     @udf(StringType())
@@ -349,6 +359,9 @@ class SparkDataFrame:
         df = df.withColumn("file_size", self.extract_file_size("full_path"))
         return df
 
+    def get_rdd(self, file_content): 
+        # rdd 생성
+        return self.sc.parallelize([file_content]) # RDD
     # def check_data_type(self, df):
     #     jpg_counts = df.filter(col("file_name").contains(".jpg")).count()
     #     png_counts = df.filter(col("file_name").contains(".png")).count()
@@ -367,12 +380,55 @@ class SparkDataFrame:
 
     def read_parquet(self, path):
         return self.spark.read.parquet(path)
-        
+
+    def save_parquet(data, path, comp_type="snappy"):
+        data.write \
+            .mode("overwrite") \
+            .option("compression", comp_type) \
+            .parquet(path)
+
     def spark_stop(self):
         return self.spark.stop()
     # def __del__(self):
     #     # 클래스 인스턴스가 소멸될 때 SparkSession을 종료
     #     self.spark.stop()
 
+class PolarsDataFrame:
+    '''
+    polars dataframe 생성
+    '''
+    def __init__(self):
+        # Polars는 별도의 설정이 필요하지 않습니다.
+        pass
 
+    @staticmethod
+    def extract_file_id(paths):
+        '''file_id 추출'''
+        return [os.path.splitext(os.path.basename(path))[0] for path in paths]
+
+    @staticmethod
+    def extract_file_name(paths):
+        '''file_name 추출'''
+        return [os.path.basename(path) for path in paths]
+
+    @staticmethod
+    def extract_folder_name(paths):
+        '''folder_name 추출'''
+        return [os.path.basename(os.path.dirname(path)) for path in paths]
+
+    @staticmethod
+    def extract_file_size(paths):
+        '''file_size 추출'''
+        return [os.path.getsize(path) for path in paths]
+
+    def get_polars_dataframe(self, paths):
+        '''polars_dataframe 생성'''
+        df = pl.DataFrame({
+            "full_path": paths,
+            "file_id": self.extract_file_id(paths),
+            "file_name": self.extract_file_name(paths),
+            "folder_name": self.extract_folder_name(paths),
+            "file_size": self.extract_file_size(paths)
+        })
+        return df
 
