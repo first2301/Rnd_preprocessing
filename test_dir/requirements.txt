@@ -1,0 +1,7 @@
+duckdb
+polars
+psutil
+pandas
+tqdm
+pyspark
+findspark
